@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏋️ आरोग्य धन संपदा — Health Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap');
+
+  :root {
+    --red: #ff2d55;
+    --green: #00ff88;
+    --blue: #00cfff;
+    --yellow: #ffd60a;
+    --bg: #020b18;
+    --panel: #061a2e;
+    --border: #0a3a5c;
+    --text: #cce8ff;
+    --dim: #4a7fa0;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(0,207,255,0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(255,45,85,0.07) 0%, transparent 50%),
+      linear-gradient(180deg, #020b18 0%, #030f1e 100%);
+  }
+
+  /* GRID OVERLAY */
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:
+      linear-gradient(rgba(0,207,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,207,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .wrapper { position:relative; z-index:1; max-width:1400px; margin:0 auto; padding:20px; }
+
+  /* HEADER */
+  .header {
+    text-align:center;
+    padding: 30px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 30px;
+    position: relative;
+  }
+  .header::after {
+    content:'';
+    position:absolute;
+    bottom:0; left:50%;
+    transform:translateX(-50%);
+    width:200px; height:2px;
+    background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  }
+  .header h1 {
+    font-family:'Orbitron', monospace;
+    font-size: clamp(1.4rem, 4vw, 2.5rem);
+    font-weight:900;
+    background: linear-gradient(90deg, var(--blue), var(--green), var(--yellow));
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    letter-spacing:3px;
+    text-transform:uppercase;
+  }
+  .header p { color:var(--dim); font-size:1rem; margin-top:6px; letter-spacing:2px; }
+  .header .date-badge {
+    display:inline-block;
+    margin-top:10px;
+    padding:4px 16px;
+    border:1px solid var(--blue);
+    border-radius:20px;
+    font-size:0.85rem;
+    color:var(--blue);
+    font-family:'Orbitron', monospace;
+  }
+
+  /* TABS */
+  .tabs {
+    display:flex;
+    gap:8px;
+    margin-bottom:25px;
+    flex-wrap:wrap;
+  }
+  .tab-btn {
+    padding:10px 22px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--dim);
+    border-radius:6px;
+    cursor:pointer;
+    font-family:'Rajdhani', sans-serif;
+    font-size:1rem;
+    font-weight:600;
+    letter-spacing:1px;
+    transition:all 0.3s;
+    text-transform:uppercase;
+  }
+  .tab-btn:hover { border-color:var(--blue); color:var(--blue); }
+  .tab-btn.active {
+    background: linear-gradient(135deg, rgba(0,207,255,0.2), rgba(0,255,136,0.1));
+    border-color:var(--green);
+    color:var(--green);
+    box-shadow: 0 0 15px rgba(0,255,136,0.2);
+  }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  /* STAT CARDS */
+  .stats-grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap:16px;
+    margin-bottom:25px;
+  }
+  .stat-card {
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:20px;
+    position:relative;
+    overflow:hidden;
+    transition:transform 0.3s, box-shadow 0.3s;
+  }
+  .stat-card:hover { transform:translateY(-4px); }
+  .stat-card::before {
+    content:'';
+    position:absolute;
+    top:0; left:0; right:0;
+    height:3px;
+  }
+  .stat-card.blue::before { background:linear-gradient(90deg, var(--blue), transparent); box-shadow: 0 0 20px rgba(0,207,255,0.4); }
+  .stat-card.green::before { background:linear-gradient(90deg, var(--green), transparent); }
+  .stat-card.red::before { background:linear-gradient(90deg, var(--red), transparent); }
+  .stat-card.yellow::before { background:linear-gradient(90deg, var(--yellow), transparent); }
+  .stat-card:hover { box-shadow: 0 8px 30px rgba(0,207,255,0.15); }
+  .stat-label { font-size:0.8rem; letter-spacing:2px; color:var(--dim); text-transform:uppercase; margin-bottom:8px; }
+  .stat-value { font-family:'Orbitron', monospace; font-size:2rem; font-weight:700; }
+  .stat-card.blue .stat-value { color:var(--blue); }
+  .stat-card.green .stat-value { color:var(--green); }
+  .stat-card.red .stat-value { color:var(--red); }
+  .stat-card.yellow .stat-value { color:var(--yellow); }
+  .stat-sub { font-size:0.85rem; color:var(--dim); margin-top:6px; }
+  .stat-icon { position:absolute; right:16px; top:16px; font-size:2rem; opacity:0.3; }
+
+  /* PROGRESS BAR */
+  .prog-wrap { margin-top:12px; }
+  .prog-bar-bg { background:rgba(255,255,255,0.05); border-radius:10px; height:8px; overflow:hidden; }
+  .prog-bar { height:100%; border-radius:10px; transition:width 1s ease; }
+  .prog-label { display:flex; justify-content:space-between; font-size:0.75rem; color:var(--dim); margin-top:4px; }
+
+  /* PANELS */
+  .panel {
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:24px;
+    margin-bottom:20px;
+    position:relative;
+  }
+  .panel-title {
+    font-family:'Orbitron', monospace;
+    font-size:1rem;
+    color:var(--blue);
+    letter-spacing:2px;
+    text-transform:uppercase;
+    margin-bottom:20px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  /* FORM */
+  .form-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px; }
+  .form-group label {
+    display:block;
+    font-size:0.8rem;
+    letter-spacing:1px;
+    color:var(--dim);
+    margin-bottom:6px;
+    text-transform:uppercase;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    width:100%;
+    background:rgba(0,207,255,0.05);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:10px 14px;
+    color:var(--text);
+    font-family:'Rajdhani', sans-serif;
+    font-size:1rem;
+    outline:none;
+    transition:border-color 0.3s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    border-color:var(--blue);
+    box-shadow:0 0 10px rgba(0,207,255,0.2);
+  }
+  .form-group select option { background:var(--panel); }
+
+  .btn {
+    padding:12px 28px;
+    border:none;
+    border-radius:8px;
+    font-family:'Orbitron', monospace;
+    font-size:0.85rem;
+    font-weight:700;
+    letter-spacing:2px;
+    cursor:pointer;
+    transition:all 0.3s;
+    text-transform:uppercase;
+    margin-top:16px;
+  }
+  .btn-green { background:linear-gradient(135deg, #00cc6e, #00ff88); color:#001a0d; }
+  .btn-green:hover { box-shadow:0 0 20px rgba(0,255,136,0.5); transform:translateY(-2px); }
+  .btn-blue { background:linear-gradient(135deg, #0099cc, #00cfff); color:#001520; }
+  .btn-blue:hover { box-shadow:0 0 20px rgba(0,207,255,0.5); transform:translateY(-2px); }
+  .btn-red { background:linear-gradient(135deg, #cc0022, #ff2d55); color:#fff; }
+  .btn-yellow { background:linear-gradient(135deg, #cc9900, #ffd60a); color:#1a1000; }
+
+  /* LOG TABLE */
+  .log-table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+  .log-table th {
+    padding:10px 14px;
+    text-align:left;
+    font-size:0.75rem;
+    letter-spacing:2px;
+    color:var(--dim);
+    text-transform:uppercase;
+    border-bottom:1px solid var(--border);
+  }
+  .log-table td {
+    padding:10px 14px;
+    border-bottom:1px solid rgba(10,58,92,0.5);
+    color:var(--text);
+  }
+  .log-table tr:hover td { background:rgba(0,207,255,0.04); }
+  .log-table .val-good { color:var(--green); font-weight:700; }
+  .log-table .val-warn { color:var(--yellow); font-weight:700; }
+  .log-table .val-bad { color:var(--red); font-weight:700; }
+
+  /* MILESTONE CARDS */
+  .milestone-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; }
+  .milestone-card {
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:20px;
+    position:relative;
+    overflow:hidden;
+    transition:transform 0.3s;
+  }
+  .milestone-card:hover { transform:translateY(-4px); }
+  .milestone-card.achieved { border-color:var(--green); }
+  .milestone-card.achieved::after {
+    content:'✅ ACHIEVED';
+    position:absolute;
+    top:12px; right:12px;
+    font-size:0.7rem;
+    color:var(--green);
+    font-family:'Orbitron',monospace;
+    letter-spacing:1px;
+  }
+  .milestone-card.current { border-color:var(--yellow); }
+  .milestone-card.current::after {
+    content:'🎯 ACTIVE';
+    position:absolute;
+    top:12px; right:12px;
+    font-size:0.7rem;
+    color:var(--yellow);
+    font-family:'Orbitron',monospace;
+    letter-spacing:1px;
+  }
+  .milestone-card.upcoming { border-color:var(--border); opacity:0.6; }
+  .ms-month { font-size:0.75rem; letter-spacing:2px; color:var(--dim); text-transform:uppercase; }
+  .ms-target { font-family:'Orbitron',monospace; font-size:1.8rem; font-weight:700; color:var(--yellow); margin:8px 0; }
+  .ms-achieved { font-size:0.9rem; color:var(--green); }
+  .ms-items { margin-top:12px; list-style:none; }
+  .ms-items li { font-size:0.85rem; color:var(--dim); padding:3px 0; }
+  .ms-items li::before { content:'▸ '; color:var(--blue); }
+
+  /* CHART CONTAINERS */
+  .chart-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(350px, 1fr)); gap:20px; }
+  .chart-box {
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:20px;
+  }
+  .chart-title { font-size:0.8rem; letter-spacing:2px; color:var(--dim); text-transform:uppercase; margin-bottom:16px; }
+  canvas { max-height:280px; }
+
+  /* DIET PLAN */
+  .diet-day {
+    display:grid;
+    grid-template-columns: 120px 1fr;
+    gap:0;
+    border-bottom:1px solid var(--border);
+    padding:14px 0;
+    align-items:start;
+  }
+  .diet-time {
+    font-family:'Orbitron',monospace;
+    font-size:0.8rem;
+    color:var(--yellow);
+    padding-top:2px;
+  }
+  .diet-meal { font-size:0.95rem; color:var(--text); }
+  .diet-cal { font-size:0.8rem; color:var(--green); margin-top:4px; }
+
+  /* WORKOUT */
+  .workout-day {
+    display:grid;
+    grid-template-columns: 130px 1fr auto;
+    gap:12px;
+    padding:14px 0;
+    border-bottom:1px solid var(--border);
+    align-items:center;
+  }
+  .wd-name { font-weight:700; color:var(--blue); font-size:0.95rem; }
+  .wd-exercises { font-size:0.85rem; color:var(--text); line-height:1.6; }
+  .wd-badge {
+    padding:4px 12px;
+    border-radius:20px;
+    font-size:0.75rem;
+    font-family:'Orbitron',monospace;
+    letter-spacing:1px;
+    white-space:nowrap;
+  }
+  .wd-badge.cardio { background:rgba(255,45,85,0.15); color:var(--red); border:1px solid var(--red); }
+  .wd-badge.strength { background:rgba(0,207,255,0.15); color:var(--blue); border:1px solid var(--blue); }
+  .wd-badge.yoga { background:rgba(0,255,136,0.15); color:var(--green); border:1px solid var(--green); }
+  .wd-badge.rest { background:rgba(255,214,10,0.15); color:var(--yellow); border:1px solid var(--yellow); }
+  .wd-badge.full { background:rgba(180,100,255,0.15); color:#c87fff; border:1px solid #c87fff; }
+
+  /* CHECKLIST */
+  .checklist { list-style:none; }
+  .checklist li {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 0;
+    border-bottom:1px solid rgba(10,58,92,0.5);
+    font-size:0.95rem;
+    cursor:pointer;
+    transition:color 0.2s;
+  }
+  .checklist li:hover { color:var(--green); }
+  .chk-box {
+    width:20px; height:20px;
+    border:2px solid var(--border);
+    border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+    transition:all 0.2s;
+    font-size:0.8rem;
+  }
+  .checklist li.done .chk-box { background:var(--green); border-color:var(--green); color:#001a0d; }
+  .checklist li.done span { text-decoration:line-through; color:var(--dim); }
+
+  /* ALERT */
+  .alert {
+    padding:12px 18px;
+    border-radius:8px;
+    margin-bottom:16px;
+    font-size:0.9rem;
+    border-left:3px solid;
+  }
+  .alert-blue { background:rgba(0,207,255,0.08); border-color:var(--blue); color:var(--blue); }
+  .alert-yellow { background:rgba(255,214,10,0.08); border-color:var(--yellow); color:var(--yellow); }
+
+  /* NOTIFICATION */
+  #toast {
+    position:fixed;
+    bottom:30px; right:30px;
+    background:var(--green);
+    color:#001a0d;
+    padding:14px 24px;
+    border-radius:10px;
+    font-family:'Orbitron',monospace;
+    font-size:0.85rem;
+    font-weight:700;
+    letter-spacing:1px;
+    transform:translateY(100px);
+    opacity:0;
+    transition:all 0.4s;
+    z-index:999;
+    box-shadow:0 0 30px rgba(0,255,136,0.4);
+  }
+  #toast.show { transform:translateY(0); opacity:1; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--blue); }
+
+  @media(max-width:600px) {
+    .workout-day { grid-template-columns:1fr; }
+    .diet-day { grid-template-columns:1fr; }
+    .diet-time { margin-bottom:4px; }
+  }
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>⚡ आरोग्य धन संपदा</h1>
+    <p>PERSONAL HEALTH COMMAND CENTER</p>
+    <div class="date-badge" id="liveDate">LOADING...</div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('dashboard')">📊 Dashboard</button>
+    <button class="tab-btn" onclick="showTab('log')">📝 Daily Log</button>
+    <button class="tab-btn" onclick="showTab('milestones')">🏆 Milestones</button>
+    <button class="tab-btn" onclick="showTab('diet')">🥗 Diet Plan</button>
+    <button class="tab-btn" onclick="showTab('workout')">💪 Workout</button>
+    <button class="tab-btn" onclick="showTab('checklist')">✅ Checklist</button>
+  </div>
+
+  <!-- ═══════════════ DASHBOARD TAB ═══════════════ -->
+  <div id="tab-dashboard" class="tab-content active">
+
+    <div class="stats-grid">
+      <div class="stat-card blue">
+        <div class="stat-icon">⚖️</div>
+        <div class="stat-label">Current Weight</div>
+        <div class="stat-value" id="dash-weight">92.0</div>
+        <div class="stat-sub">किलो — लक्ष्य: 80 kg</div>
+        <div class="prog-wrap">
+          <div class="prog-bar-bg"><div class="prog-bar" id="weight-prog" style="background:linear-gradient(90deg,var(--blue),var(--green));width:0%"></div></div>
+          <div class="prog-label"><span>92 kg</span><span id="weight-pct">0%</span><span>80 kg</span></div>
+        </div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon">📉</div>
+        <div class="stat-label">Total Lost</div>
+        <div class="stat-value" id="dash-lost">0.0</div>
+        <div class="stat-sub">किलो कमी झाले</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon">🗓️</div>
+        <div class="stat-label">Day of Journey</div>
+        <div class="stat-value" id="dash-day">1</div>
+        <div class="stat-sub">150 दिवसांपैकी</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-label">Streak</div>
+        <div class="stat-value" id="dash-streak">0</div>
+        <div class="stat-sub">दिवस सलग लॉग</div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-box">
+        <div class="chart-title">⚖️ Weight Progress (kg)</div>
+        <canvas id="weightChart"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">💧 पाणी vs 😴 झोप</div>
+        <canvas id="waterSleepChart"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">⚡ Energy Level Trend</div>
+        <canvas id="energyChart"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">📏 Body Measurements (cm)</div>
+        <canvas id="measureChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════ DAILY LOG TAB ═══════════════ -->
+  <div id="tab-log" class="tab-content">
+    <div class="panel">
+      <div class="panel-title">📝 आजचा Log — Daily Entry</div>
+      <div class="alert alert-yellow">⚠️ थायरॉक्सिन घेतली का? जेवणाआधी ६० मिनिटे!</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>📅 तारीख</label>
+          <input type="date" id="log-date">
+        </div>
+        <div class="form-group">
+          <label>⚖️ वजन (kg)</label>
+          <input type="number" id="log-weight" step="0.1" min="60" max="120" placeholder="92.0">
+        </div>
+        <div class="form-group">
+          <label>📏 कंबर (cm)</label>
+          <input type="number" id="log-waist" step="0.5" placeholder="98">
+        </div>
+        <div class="form-group">
+          <label>💧 पाणी (लिटर)</label>
+          <input type="number" id="log-water" step="0.5" min="0" max="10" placeholder="3.0">
+        </div>
+        <div class="form-group">
+          <label>😴 झोप (तास)</label>
+          <input type="number" id="log-sleep" step="0.5" min="0" max="12" placeholder="7.5">
+        </div>
+        <div class="form-group">
+          <label>⚡ ऊर्जा (1-10)</label>
+          <input type="number" id="log-energy" min="1" max="10" placeholder="7">
+        </div>
+        <div class="form-group">
+          <label>💪 व्यायाम केला?</label>
+          <select id="log-exercise">
+            <option value="yes">✅ होय</option>
+            <option value="no">❌ नाही</option>
+            <option value="partial">🟡 अर्धवट</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>😊 मूड (1-10)</label>
+          <input type="number" id="log-mood" min="1" max="10" placeholder="7">
+        </div>
+        <div class="form-group">
+          <label>💊 औषध घेतले?</label>
+          <select id="log-medicine">
+            <option value="yes">✅ होय</option>
+            <option value="no">❌ नाही</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-green" onclick="saveLog()">💾 SAVE LOG</button>
+      <button class="btn btn-blue" onclick="exportCSV()" style="margin-left:10px">📥 EXPORT CSV</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">📋 Log History</div>
+      <div style="overflow-x:auto">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>तारीख</th><th>वजन</th><th>कंबर</th><th>पाणी</th><th>झोप</th><th>ऊर्जा</th><th>व्यायाम</th><th>मूड</th><th>💊</th><th>❌</th>
+            </tr>
+          </thead>
+          <tbody id="log-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MILESTONES TAB ═══════════════ -->
+  <div id="tab-milestones" class="tab-content">
+    <div class="panel">
+      <div class="panel-title">🏆 5-Month Journey Milestones</div>
+      <div class="milestone-grid">
+
+        <div class="milestone-card" id="ms1">
+          <div class="ms-month">महिना १ — फेब्रुवारी</div>
+          <div class="ms-target" id="ms1-val">88-89 kg</div>
+          <div class="ms-achieved" id="ms1-status">लक्ष्य: ८८-८९ किलो</div>
+          <ul class="ms-items">
+            <li>३० मिनिटे चालणे सलग</li>
+            <li>प्रक्रिया केलेले पदार्थ बंद</li>
+            <li>थायरॉक्सिन नियमित</li>
+            <li>दर रात्री ७-८ तास झोप</li>
+          </ul>
+        </div>
+
+        <div class="milestone-card" id="ms2">
+          <div class="ms-month">महिना २ — मार्च</div>
+          <div class="ms-target">85-86 kg</div>
+          <div class="ms-achieved">लक्ष्य: ८५-८६ किलो</div>
+          <ul class="ms-items">
+            <li>शक्ती प्रशिक्षण आठवड्यातून ३x</li>
+            <li>दररोज ८०+ ग्रॅम प्रथिन</li>
+            <li>कंबर: ९८ → ९३ cm</li>
+            <li>TSH तपासणी</li>
+          </ul>
+        </div>
+
+        <div class="milestone-card" id="ms3">
+          <div class="ms-month">महिना ३ — एप्रिल</div>
+          <div class="ms-target">83-84 kg</div>
+          <div class="ms-achieved">लक्ष्य: ८३-८४ किलो</div>
+          <ul class="ms-items">
+            <li>४५ मिनिटे कार्डिओ+शक्ती</li>
+            <li>शरीर रचना तपासणी</li>
+            <li>HIIT आठवड्यातून २x</li>
+            <li>प्रगती फोटो</li>
+          </ul>
+        </div>
+
+        <div class="milestone-card" id="ms4">
+          <div class="ms-month">महिना ४ — मे</div>
+          <div class="ms-target">81-82 kg</div>
+          <div class="ms-achieved">लक्ष्य: ८१-८२ किलो</div>
+          <ul class="ms-items">
+            <li>प्रगत व्यायाम करणे</li>
+            <li>शक्ती मूल्यांकन</li>
+            <li>चांगली सहनशक्ती</li>
+            <li>शरीरातील चरबी: ≤18%</li>
+          </ul>
+        </div>
+
+        <div class="milestone-card" id="ms5">
+          <div class="ms-month">महिना ५ — जून</div>
+          <div class="ms-target">🎯 80 kg</div>
+          <div class="ms-achieved">अंतिम लक्ष्य!</div>
+          <ul class="ms-items">
+            <li>संपूर्ण फिटनेस प्राप्त</li>
+            <li>देखभाल योजना सुरू</li>
+            <li>अंतिम मापे</li>
+            <li>🏆 GOAL ACHIEVED!</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PROGRESS SUMMARY -->
+    <div class="panel">
+      <div class="panel-title">📊 Overall Progress Summary</div>
+      <div class="stats-grid">
+        <div class="stat-card green">
+          <div class="stat-label">सुरुवात वजन</div>
+          <div class="stat-value">92</div>
+          <div class="stat-sub">किलो</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">सध्याचे वजन</div>
+          <div class="stat-value" id="ms-current">92</div>
+          <div class="stat-sub">किलो</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">लक्ष्य वजन</div>
+          <div class="stat-value">80</div>
+          <div class="stat-sub">किलो</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">अजून बाकी</div>
+          <div class="stat-value" id="ms-remaining">12</div>
+          <div class="stat-sub">किलो</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ DIET PLAN TAB ═══════════════ -->
+  <div id="tab-diet" class="tab-content">
+    <div class="panel">
+      <div class="panel-title">🥗 दैनिक शाकाहारी आहार योजना</div>
+      <div class="alert alert-blue">💡 एकूण कॅलरी: ~१८००-२००० | प्रथिन: ८०+ ग्रॅम | थायरॉक्सिन घेतल्यावर ६० मिनिटांनी नाश्ता</div>
+
+      <div class="diet-day">
+        <div class="diet-time">06:30 AM</div>
+        <div>
+          <div class="diet-meal">💊 थायरॉक्सिन १०० mg — कोमट पाण्यासोबत</div>
+          <div class="diet-cal">⚠️ नंतर ६० मिनिटे काहीही खाऊ नका</div>
+        </div>
+      </div>
+      <div class="diet-day">
+        <div class="diet-time">07:00 AM</div>
+        <div>
+          <div class="diet-meal">🌅 सकाळचे पेय — लिंबू + कोमट पाणी + ८ भिजवलेले बदाम + ६ अक्रोड</div>
+          <div class="diet-cal">~150 kcal | प्रथिन: 5g</div>
+        </div>
+      </div>
+      <div class="diet-day">
+        <div class="diet-time">08:00 AM</div>
+        <div>
+          <div class="diet-meal">🍽️ नाश्ता — २ मूग डाळ चिल्ला + पुदीना चटणी + दही (१ वाटी)</div>
+          <div class="diet-cal">~380 kcal | प्रथिन: 22g | फायबर: 8g</div>
+        </div>
+      </div>
+      <div class="diet-day">
+        <div class="diet-time">10:30 AM</div>
+        <div>
+          <div class="diet-meal">☕ मध्यंतरी — ग्रीन टी + मूठभर शेंगदाणे/खजूर ४</div>
+          <div class="diet-cal">~180 kcal | प्रथिन: 7g</div>
+        </div>
+      </div>
+      <div class="diet-day">
+        <div class="diet-time">01:00 PM</div>
+        <div>
+          <div class="diet-meal">🌞 दुपारचे जेवण — २ रोटी + पालक पनीर (१०० g) + काकडी सॅलड + ताक</div>
+          <div class="diet-cal">~550 kcal | प्रथिन: 25g | कॅल्शियम: उच्च</div>
+        </div>
+      </div>
+      <div class="diet-day">
+        <div class="diet-time">04:00 PM</div>
+        <div>
+          <div class="diet-meal">🍌 संध्याकाळी — केळी स्मूदी (दूध + शेंगदाणे बटर) किंवा मिश्र बियाणे</div>
+          <div class="diet-cal">~280 kcal | प्रथिन: 12g</div>
+        </div>
+      </div>
+      <div class="diet-day">
+        <div class="diet-time">07:00 PM</div>
+        <div>
+          <div class="diet-meal">🌙 रात्रीचे जेवण — क्विनोआ पुलाव + मिक्स दाळ + दही + पालेभाज्या</div>
+          <div class="diet-cal">~480 kcal | प्रथिन: 18g | फायबर: 12g</div>
+        </div>
+      </div>
+      <div class="diet-day">
+        <div class="diet-time">09:00 PM</div>
+        <div>
+          <div class="diet-meal">🌙 झोपण्यापूर्वी — गोल्डन मिल्क (हळद + बदाम दूध) किंवा कॅमोमाइल टी</div>
+          <div class="diet-cal">~120 kcal | Anti-inflammatory</div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+          <div style="background:rgba(0,255,136,0.08); border:1px solid var(--green); border-radius:8px; padding:14px 20px; flex:1; min-width:160px;">
+            <div style="font-size:0.75rem; color:var(--dim); letter-spacing:1px;">एकूण CALORIES</div>
+            <div style="font-family:'Orbitron',monospace; font-size:1.5rem; color:var(--green);">~1800</div>
+            <div style="font-size:0.8rem; color:var(--dim);">kcal/दिवस</div>
+          </div>
+          <div style="background:rgba(0,207,255,0.08); border:1px solid var(--blue); border-radius:8px; padding:14px 20px; flex:1; min-width:160px;">
+            <div style="font-size:0.75rem; color:var(--dim); letter-spacing:1px;">एकूण PROTEIN</div>
+            <div style="font-family:'Orbitron',monospace; font-size:1.5rem; color:var(--blue);">89g</div>
+            <div style="font-size:0.8rem; color:var(--dim);">ग्रॅम/दिवस</div>
+          </div>
+          <div style="background:rgba(255,214,10,0.08); border:1px solid var(--yellow); border-radius:8px; padding:14px 20px; flex:1; min-width:160px;">
+            <div style="font-size:0.75rem; color:var(--dim); letter-spacing:1px;">CALORIE DEFICIT</div>
+            <div style="font-family:'Orbitron',monospace; font-size:1.5rem; color:var(--yellow);">~600</div>
+            <div style="font-size:0.8rem; color:var(--dim);">kcal deficit</div>
+          </div>
+          <div style="background:rgba(255,45,85,0.08); border:1px solid var(--red); border-radius:8px; padding:14px 20px; flex:1; min-width:160px;">
+            <div style="font-size:0.75rem; color:var(--dim); letter-spacing:1px;">पाणी TARGET</div>
+            <div style="font-family:'Orbitron',monospace; font-size:1.5rem; color:var(--red);">3.5L</div>
+            <div style="font-size:0.8rem; color:var(--dim);">लिटर/दिवस</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ WORKOUT TAB ═══════════════ -->
+  <div id="tab-workout" class="tab-content">
+    <div class="panel">
+      <div class="panel-title">💪 साप्ताहिक Workout Schedule</div>
+
+      <div class="workout-day">
+        <div class="wd-name">सोमवार</div>
+        <div class="wd-exercises">🏃 ३० मिनिटे जलद चालणे/जॉगिंग + १५ मिनिटे योग<br>🌙 २० मिनिटे Core workout + प्राणायाम</div>
+        <div class="wd-badge cardio">CARDIO</div>
+      </div>
+      <div class="workout-day">
+        <div class="wd-name">मंगळवार</div>
+        <div class="wd-exercises">💪 ४५ मिनिटे Strength Training — वरचे शरीर (Dumbbell)<br>Chest Press, Shoulder Press, Bicep Curl, Tricep Dip<br>🌙 ३० मिनिटे चालणे + ध्यान</div>
+        <div class="wd-badge strength">STRENGTH</div>
+      </div>
+      <div class="workout-day">
+        <div class="wd-name">बुधवार</div>
+        <div class="wd-exercises">🏃 ३० मिनिटे धावणे + १० मिनिटे Dynamic Stretching<br>🌙 २५ मिनिटे HIIT (Skipping + Bodyweight) + Cool Down</div>
+        <div class="wd-badge cardio">CARDIO + HIIT</div>
+      </div>
+      <div class="workout-day">
+        <div class="wd-name">गुरुवार</div>
+        <div class="wd-exercises">🦵 ४५ मिनिटे Strength Training — खालचे शरीर<br>Squats, Lunges, Deadlift, Calf Raise<br>🌙 ३० मिनिटे Yoga + श्वास व्यायाम</div>
+        <div class="wd-badge strength">STRENGTH</div>
+      </div>
+      <div class="workout-day">
+        <div class="wd-name">शुक्रवार</div>
+        <div class="wd-exercises">🚴 ३० मिनिटे चालणे + योग (Sun Salutation १२ फेऱ्या)<br>🌙 २० मिनिटे दोरीवर उड्या + स्ट्रेचिंग</div>
+        <div class="wd-badge yoga">YOGA + CARDIO</div>
+      </div>
+      <div class="workout-day">
+        <div class="wd-name">शनिवार</div>
+        <div class="wd-exercises">🔥 ६० मिनिटे Full Body Workout<br>Circuit: Squats→Push-ups→Plank→Jump Rope→Dumbbell Row<br>🌙 हलके चालणे</div>
+        <div class="wd-badge full">FULL BODY</div>
+      </div>
+      <div class="workout-day">
+        <div class="wd-name">रविवार</div>
+        <div class="wd-exercises">🧘 सौम्य योग / हलके चालणे — शरीराला विश्रांती<br>🌙 ध्यान, कुटुंबाबरोबर वेळ</div>
+        <div class="wd-badge rest">REST + RECOVERY</div>
+      </div>
+
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <div style="background:rgba(255,45,85,0.08);border:1px solid var(--red);border-radius:8px;padding:10px 16px;font-size:0.85rem;">🔥 Cardio: <span style="color:var(--red);font-weight:700;">250-350 kcal/session</span></div>
+          <div style="background:rgba(0,207,255,0.08);border:1px solid var(--blue);border-radius:8px;padding:10px 16px;font-size:0.85rem;">💪 Strength: <span style="color:var(--blue);font-weight:700;">200-300 kcal/session</span></div>
+          <div style="background:rgba(255,214,10,0.08);border:1px solid var(--yellow);border-radius:8px;padding:10px 16px;font-size:0.85rem;">⚡ HIIT: <span style="color:var(--yellow);font-weight:700;">200-250 kcal/session</span></div>
+          <div style="background:rgba(0,255,136,0.08);border:1px solid var(--green);border-radius:8px;padding:10px 16px;font-size:0.85rem;">🧘 Yoga: <span style="color:var(--green);font-weight:700;">150-200 kcal/session</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ CHECKLIST TAB ═══════════════ -->
+  <div id="tab-checklist" class="tab-content">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;">
+
+      <div class="panel">
+        <div class="panel-title">☀️ Morning Routine</div>
+        <ul class="checklist" id="morning-list">
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>06:30 — थायरॉक्सिन 100mg घेतली</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>07:00 — लिंबू पाणी + बदाम</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>07:15 — व्यायाम सुरू</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>08:00 — पौष्टिक नाश्ता</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>सकाळी वजन मोजले (रिकाम्या पोटी)</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>10 मिनिटे ध्यान / प्राणायाम</span></li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">🌙 Evening Routine</div>
+        <ul class="checklist" id="evening-list">
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>07:00 PM — हलके जेवण</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>संध्याकाळी चालणे / योग</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>09:00 PM — गोल्डन मिल्क</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>उद्याचे जेवण plan केले</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>10:30 PM — झोपणे</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>App मध्ये daily log केला</span></li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">📊 Weekly Tracking</div>
+        <ul class="checklist" id="weekly-list">
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>रविवारी वजन नोंद केले</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>कंबर मोजली</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>छाती, हात, मांडी मोजले</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>प्रगती फोटो काढला</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>५ पैकी किती दिवस व्यायाम?</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>पुढच्या आठवड्याचे meal prep</span></li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">🏆 Non-Scale Victories</div>
+        <ul class="checklist" id="nsv-list">
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>कपडे अधिक सैल झाले</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>जिना चढताना कमी श्वास लागतो</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>सकाळी उठताना ऊर्जा जाणवते</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>झोप चांगली लागते</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>सांधे कमी दुखतात</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>मनःस्थिती सकारात्मक आहे</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>त्वचा चांगली दिसते</span></li>
+          <li onclick="toggleCheck(this)"><div class="chk-box"></div><span>पचन सुधारले</span></li>
+        </ul>
+      </div>
+
+    </div>
+    <div style="text-align:center;margin-top:16px;">
+      <button class="btn btn-yellow" onclick="saveChecklists()">💾 Save Checklist</button>
+      <button class="btn btn-red" onclick="resetChecklists()" style="margin-left:10px">🔄 Reset All</button>
+    </div>
+  </div>
+
+</div><!-- end wrapper -->
+
+<script>
+// ── UTILITIES ──────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if(name==='dashboard') refreshDashboard();
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── DATE ────────────────────────────────────
+function updateDate() {
+  const now = new Date();
+  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+  document.getElementById('liveDate').textContent = now.toLocaleDateString('mr-IN', opts);
+}
+updateDate();
+
+// ── LOCAL STORAGE HELPERS ──────────────────
+function getLogs() { return JSON.parse(localStorage.getItem('healthLogs') || '[]'); }
+function saveLogs(data) { localStorage.setItem('healthLogs', JSON.stringify(data)); }
+function getChk() { return JSON.parse(localStorage.getItem('checklists') || '{}'); }
+function saveChk(data) { localStorage.setItem('checklists', JSON.stringify(data)); }
+
+// ── LOG FORM ────────────────────────────────
+document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
+
+function saveLog() {
+  const entry = {
+    date: document.getElementById('log-date').value,
+    weight: parseFloat(document.getElementById('log-weight').value) || null,
+    waist: parseFloat(document.getElementById('log-waist').value) || null,
+    water: parseFloat(document.getElementById('log-water').value) || null,
+    sleep: parseFloat(document.getElementById('log-sleep').value) || null,
+    energy: parseInt(document.getElementById('log-energy').value) || null,
+    exercise: document.getElementById('log-exercise').value,
+    mood: parseInt(document.getElementById('log-mood').value) || null,
+    medicine: document.getElementById('log-medicine').value
+  };
+  if (!entry.date) { toast('⚠️ तारीख निवडा!'); return; }
+  const logs = getLogs();
+  const existing = logs.findIndex(l => l.date === entry.date);
+  if (existing >= 0) logs[existing] = entry; else logs.push(entry);
+  logs.sort((a,b) => new Date(b.date) - new Date(a.date));
+  saveLogs(logs);
+  renderLogTable();
+  refreshDashboard();
+  toast('✅ Log Saved!');
+}
+
+function renderLogTable() {
+  const logs = getLogs();
+  const tbody = document.getElementById('log-tbody');
+  if (!logs.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--dim);padding:20px;">अजून कोणताही log नाही. वरून entry करा!</td></tr>'; return; }
+  tbody.innerHTML = logs.slice(0,30).map(l => {
+    const wClass = l.weight ? (l.weight <= 85 ? 'val-good' : l.weight <= 90 ? 'val-warn' : 'val-bad') : '';
+    const eClass = l.energy ? (l.energy >= 7 ? 'val-good' : l.energy >= 5 ? 'val-warn' : 'val-bad') : '';
+    return `<tr>
+      <td>${l.date}</td>
+      <td class="${wClass}">${l.weight || '-'} kg</td>
+      <td>${l.waist || '-'} cm</td>
+      <td class="${l.water >= 3 ? 'val-good' : 'val-warn'}">${l.water || '-'} L</td>
+      <td class="${l.sleep >= 7 ? 'val-good' : 'val-warn'}">${l.sleep || '-'} h</td>
+      <td class="${eClass}">${l.energy || '-'}/10</td>
+      <td class="${l.exercise==='yes'?'val-good':l.exercise==='partial'?'val-warn':'val-bad'}">${l.exercise==='yes'?'✅':l.exercise==='partial'?'🟡':'❌'}</td>
+      <td>${l.mood || '-'}/10</td>
+      <td class="${l.medicine==='yes'?'val-good':'val-bad'}">${l.medicine==='yes'?'✅':'❌'}</td>
+      <td><button onclick="deleteLog('${l.date}')" style="background:rgba(255,45,85,0.2);border:1px solid var(--red);color:var(--red);padding:3px 8px;border-radius:4px;cursor:pointer;font-size:0.75rem;">Del</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function deleteLog(date) {
+  const logs = getLogs().filter(l => l.date !== date);
+  saveLogs(logs);
+  renderLogTable();
+  refreshDashboard();
+  toast('🗑️ Log deleted');
+}
+
+// ── EXPORT CSV ──────────────────────────────
+function exportCSV() {
+  const logs = getLogs();
+  if (!logs.length) { toast('⚠️ कोणताही data नाही!'); return; }
+  const header = 'Date,Weight(kg),Waist(cm),Water(L),Sleep(h),Energy,Exercise,Mood,Medicine\n';
+  const rows = logs.map(l => `${l.date},${l.weight||''},${l.waist||''},${l.water||''},${l.sleep||''},${l.energy||''},${l.exercise||''},${l.mood||''},${l.medicine||''}`).join('\n');
+  const blob = new Blob([header+rows], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'health_log.csv'; a.click();
+  toast('📥 CSV Downloaded!');
+}
+
+// ── DASHBOARD ───────────────────────────────
+function refreshDashboard() {
+  const logs = getLogs();
+  const START_WEIGHT = 92;
+  const TARGET_WEIGHT = 80;
+  const START_DATE = new Date('2026-02-19');
+
+  const latest = logs.find(l => l.weight);
+  const currentW = latest ? latest.weight : START_WEIGHT;
+  const lost = Math.max(0, START_WEIGHT - currentW).toFixed(1);
+  const prog = Math.min(100, Math.max(0, ((START_WEIGHT - currentW) / (START_WEIGHT - TARGET_WEIGHT)) * 100)).toFixed(0);
+  const dayNum = Math.floor((new Date() - START_DATE) / 86400000) + 1;
+
+  // streak
+  let streak = 0;
+  const sorted = [...logs].sort((a,b) => new Date(b.date)-new Date(a.date));
+  let prev = new Date(); prev.setHours(0,0,0,0);
+  for (const l of sorted) {
+    const ld = new Date(l.date); ld.setHours(0,0,0,0);
+    const diff = (prev - ld) / 86400000;
+    if (diff <= 1) { streak++; prev = ld; } else break;
+  }
+
+  document.getElementById('dash-weight').textContent = currentW.toFixed(1);
+  document.getElementById('dash-lost').textContent = lost;
+  document.getElementById('dash-day').textContent = Math.max(1, dayNum);
+  document.getElementById('dash-streak').textContent = streak;
+  document.getElementById('weight-prog').style.width = prog + '%';
+  document.getElementById('weight-pct').textContent = prog + '%';
+  document.getElementById('ms-current').textContent = currentW.toFixed(1);
+  document.getElementById('ms-remaining').textContent = Math.max(0, currentW - TARGET_WEIGHT).toFixed(1);
+
+  renderCharts(logs);
+}
+
+// ── CHARTS ──────────────────────────────────
+let charts = {};
+function renderCharts(logs) {
+  const recent = [...logs].sort((a,b) => new Date(a.date)-new Date(b.date)).slice(-20);
+  const labels = recent.map(l => l.date.slice(5));
+
+  const defaultData = {
+    labels: ['Feb W1','Feb W2','Mar W1','Mar W2','Apr W1'],
+    weight: [92, 91, 90, 89, 88],
+    water:  [2.5, 3.0, 3.2, 3.5, 3.5],
+    sleep:  [6.5, 7.0, 7.5, 7.5, 8.0],
+    energy: [6,   7,   7,   8,   8]
+  };
+
+  const wLabels = recent.filter(l=>l.weight).length > 1 ? labels : defaultData.labels;
+  const wData   = recent.filter(l=>l.weight).length > 1 ? recent.map(l=>l.weight) : defaultData.weight;
+
+  // Weight Chart
+  if (charts.weight) charts.weight.destroy();
+  charts.weight = new Chart(document.getElementById('weightChart'), {
+    type:'line',
+    data: {
+      labels: wLabels,
+      datasets: [{
+        label:'Weight (kg)',
+        data: wData,
+        borderColor:'#00cfff',
+        backgroundColor:'rgba(0,207,255,0.1)',
+        borderWidth:2.5,
+        pointBackgroundColor:'#00cfff',
+        pointRadius:5,
+        tension:0.4,
+        fill:true
+      },{
+        label:'Target',
+        data: wLabels.map(()=>80),
+        borderColor:'#00ff88',
+        borderDash:[6,4],
+        borderWidth:1.5,
+        pointRadius:0,
+        fill:false
+      }]
+    },
+    options: chartOpts('kg')
+  });
+
+  // Water + Sleep
+  const wsLabels = recent.filter(l=>l.water||l.sleep).length > 1 ? labels : defaultData.labels;
+  if (charts.ws) charts.ws.destroy();
+  charts.ws = new Chart(document.getElementById('waterSleepChart'), {
+    type:'bar',
+    data: {
+      labels: wsLabels,
+      datasets: [{
+        label:'पाणी (L)',
+        data: recent.filter(l=>l.water).length>1 ? recent.map(l=>l.water||0) : defaultData.water,
+        backgroundColor:'rgba(0,207,255,0.6)',
+        borderColor:'#00cfff',
+        borderWidth:1,
+        borderRadius:4
+      },{
+        label:'झोप (h)',
+        data: recent.filter(l=>l.sleep).length>1 ? recent.map(l=>l.sleep||0) : defaultData.sleep,
+        backgroundColor:'rgba(255,45,85,0.6)',
+        borderColor:'#ff2d55',
+        borderWidth:1,
+        borderRadius:4
+      }]
+    },
+    options: chartOpts('')
+  });
+
+  // Energy
+  const eLabels = recent.filter(l=>l.energy).length>1 ? labels : defaultData.labels;
+  if (charts.energy) charts.energy.destroy();
+  charts.energy = new Chart(document.getElementById('energyChart'), {
+    type:'line',
+    data: {
+      labels: eLabels,
+      datasets:[{
+        label:'Energy Level',
+        data: recent.filter(l=>l.energy).length>1 ? recent.map(l=>l.energy||0) : defaultData.energy,
+        borderColor:'#ffd60a',
+        backgroundColor:'rgba(255,214,10,0.1)',
+        borderWidth:2.5,
+        pointBackgroundColor:'#ffd60a',
+        pointRadius:5,
+        tension:0.4,
+        fill:true
+      }]
+    },
+    options: chartOpts('/10')
+  });
+
+  // Measurements
+  if (charts.measure) charts.measure.destroy();
+  charts.measure = new Chart(document.getElementById('measureChart'), {
+    type:'radar',
+    data: {
+      labels:['वजन progress','ऊर्जा','झोप','पाणी','व्यायाम'],
+      datasets:[{
+        label:'तुमची प्रगती',
+        data:[
+          Math.min(100,Math.max(0,(92-(recent.find(l=>l.weight)||{weight:92}).weight||0)/(92-80)*100)||5),
+          (recent.find(l=>l.energy)||{energy:5}).energy*10||50,
+          Math.min(100,((recent.find(l=>l.sleep)||{sleep:6}).sleep||6)/8*100),
+          Math.min(100,((recent.find(l=>l.water)||{water:2.5}).water||2.5)/3.5*100),
+          recent.filter(l=>l.exercise==='yes').length/Math.max(1,recent.length)*100||30
+        ],
+        backgroundColor:'rgba(0,255,136,0.15)',
+        borderColor:'#00ff88',
+        pointBackgroundColor:'#00ff88',
+        borderWidth:2
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{labels:{color:'#cce8ff',font:{family:'Rajdhani'}}}},
+      scales:{r:{grid:{color:'rgba(10,58,92,0.8)'},pointLabels:{color:'#cce8ff',font:{family:'Rajdhani',size:11}},ticks:{color:'#4a7fa0',backdropColor:'transparent'},angleLines:{color:'rgba(10,58,92,0.8)'}}}
+    }
+  });
+}
+
+function chartOpts(unit) {
+  return {
+    responsive:true,
+    plugins:{legend:{labels:{color:'#cce8ff',font:{family:'Rajdhani',size:11}}}},
+    scales:{
+      x:{grid:{color:'rgba(10,58,92,0.6)'},ticks:{color:'#4a7fa0',font:{family:'Rajdhani'}}},
+      y:{grid:{color:'rgba(10,58,92,0.6)'},ticks:{color:'#4a7fa0',font:{family:'Rajdhani'},callback:v=>v+unit}}
+    }
+  };
+}
+
+// ── CHECKLISTS ──────────────────────────────
+function toggleCheck(li) {
+  li.classList.toggle('done');
+  if(li.classList.contains('done')) { li.querySelector('.chk-box').textContent='✓'; }
+  else { li.querySelector('.chk-box').textContent=''; }
+}
+
+function saveChecklists() {
+  const data = {};
+  ['morning-list','evening-list','weekly-list','nsv-list'].forEach(id => {
+    const items = document.querySelectorAll('#'+id+' li');
+    data[id] = Array.from(items).map(li => li.classList.contains('done'));
+  });
+  saveChk(data);
+  toast('✅ Checklist Saved!');
+}
+
+function resetChecklists() {
+  document.querySelectorAll('.checklist li').forEach(li => {
+    li.classList.remove('done');
+    li.querySelector('.chk-box').textContent = '';
+  });
+  saveChk({});
+  toast('🔄 Reset Done!');
+}
+
+function loadChecklists() {
+  const data = getChk();
+  ['morning-list','evening-list','weekly-list','nsv-list'].forEach(id => {
+    if(!data[id]) return;
+    const items = document.querySelectorAll('#'+id+' li');
+    data[id].forEach((done, i) => {
+      if(done && items[i]) { items[i].classList.add('done'); items[i].querySelector('.chk-box').textContent='✓'; }
+    });
+  });
+}
+
+// ── INIT ────────────────────────────────────
+renderLogTable();
+refreshDashboard();
+loadChecklists();
+</script>
+</body>
+</html>

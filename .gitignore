@@ -1,0 +1,26 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Temp files
+*.tmp
+*.temp
+
+# Node (if ever used)
+node_modules/
+npm-debug.log
+
+# Keep these:
+# ✅ index.html
+# ✅ README.md
+# ✅ CHANGELOG.md
